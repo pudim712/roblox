@@ -1,10 +1,13 @@
 /**
  * ROBLOX FRIEND MANAGER - Frontend Logic
- * Atualizado: Versão com Correção de Fotos (Anti-404) e Bypass Ngrok
+ * Atualizado: Versão Ultra-Estável com Correção de Fotos (Anti-Loop e Fallback)
  */
 
 // Mantenha a URL sem a barra final. 
 const API_BASE = "https://cc32-2804-30c-3248-a000-2d74-ac7a-a410-973a.ngrok-free.app";
+
+// Fallback estável (Avatar padrão do Builderman se tudo falhar)
+const FALLBACK_URL = "https://www.roblox.com/headshot-thumbnail/image?userId=1&width=150&height=150&format=png";
 
 let userCookie = "";
 let userData = null;
@@ -34,15 +37,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 /**
  * Utilitário: Gerar URLs de imagem (Avatar) via Proxy do Servidor
- * Corrigido para evitar erros 404 quando o ID é indefinido.
  */
 const getThumb = (id) => {
-    // Se não houver ID válido, retorna a imagem transparente padrão do Roblox
     if (!id || id === "undefined" || id === "null") {
-        return 'https://tr.rbxcdn.com/30DAY-AvatarHeadshot-Png-Chid-0-W150-H150-Crop/150/150/AvatarHeadshot/Png/transparent';
+        return FALLBACK_URL;
     }
     
-    // Bypass do Ngrok via query string (usando true para maior compatibilidade)
+    // Bypass do Ngrok via query string
     return `${API_BASE}/api/proxy-image/${id}?ngrok-skip-browser-warning=true`;
 };
 
@@ -74,9 +75,11 @@ async function performLogin(cookie, isAuto = false) {
         // UI Update
         document.getElementById('user-name').innerText = userData.displayName || userData.name;
         
-        // Atualiza o avatar do topo com a nova lógica de ID
+        // Atualiza o avatar do topo com validação
         const topAvatar = document.getElementById('user-avatar');
-        if (topAvatar) topAvatar.src = getThumb(userData.id);
+        if (topAvatar && userData.id) {
+            topAvatar.src = getThumb(userData.id);
+        }
 
         loginScreen.classList.add('hidden');
         mainInterface.classList.remove('hidden');
@@ -84,7 +87,7 @@ async function performLogin(cookie, isAuto = false) {
         await loadFriends();
     } catch (err) {
         console.error("[ERROR]", err.message);
-        if (!isAuto) alert("Falha ao entrar. Verifique o cookie ou se o servidor Node.js está aberto.");
+        if (!isAuto) alert("Falha ao entrar. Verifique o cookie.");
         toggleLoading(btnLogin, false, originalContent);
     }
 }
@@ -121,7 +124,7 @@ async function loadFriends() {
         grid.innerHTML = `
             <div style="grid-column: 1/-1; text-align: center; color: #ff4757; padding: 40px;">
                 <i class="fa-solid fa-triangle-exclamation fa-2x"></i>
-                <p style="margin-top:10px;">Erro ao carregar lista. Verifique o console do VS Code.</p>
+                <p style="margin-top:10px;">Erro ao carregar lista.</p>
             </div>`;
     }
 }
@@ -148,12 +151,12 @@ function render() {
         const card = document.createElement('div');
         card.className = `friend-card ${isSelected ? 'selected' : ''}`;
         
-        // Renderização segura da imagem
+        // Renderização com Anti-Loop no onerror
         card.innerHTML = `
             <img src="${getThumb(friend.id)}" 
                  alt="avatar" 
                  loading="lazy"
-                 onerror="this.onerror=null;this.src='https://tr.rbxcdn.com/30DAY-AvatarHeadshot-Png-Chid-0-W150-H150-Crop/150/150/AvatarHeadshot/Png/transparent';">
+                 onerror="this.onerror=null; this.src='${FALLBACK_URL}';">
             <span class="display-name">${friend.displayName}</span>
             <small class="username">@${friend.name}</small>
         `;
@@ -222,7 +225,6 @@ btnRemove.onclick = async () => {
 
         const data = await res.json();
         
-        // Atualiza lista local
         allFriends = allFriends.filter(f => !data.success.includes(f.id));
         selectedIds.clear();
         
