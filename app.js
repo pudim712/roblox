@@ -3,7 +3,7 @@
  * Atualizado: Versão Ultra-Responsiva para Mobile & Desktop.
  */
 
-const API_BASE = "http://localhost:3000/api";
+const API_BASE = "https://8bbf-2804-30c-3248-a000-2d74-ac7a-a410-973a.ngrok-free.app";
 let userCookie = "";
 let userData = null;
 let allFriends = [];
