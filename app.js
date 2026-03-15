@@ -3,7 +3,7 @@
  * Versão: No-Photos (Removido completamente o sistema de imagens)
  */
 
-const API_BASE = "https://cc32-2804-30c-3248-a000-2d74-ac7a-a410-973a.ngrok-free.app";
+const API_BASE = "https://305b-2804-30c-3248-a000-2d74-ac7a-a410-973a.ngrok-free.app";
 
 let userCookie = "";
 let userData = null;
