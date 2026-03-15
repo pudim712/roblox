@@ -1,9 +1,10 @@
 /**
  * ROBLOX FRIEND MANAGER - Frontend Logic
- * Atualizado: Versão Ultra-Responsiva para Mobile & Desktop.
+ * Atualizado: Versão Ultra-Responsiva com Bypass de Ngrok
  */
 
-const API_BASE = "https://690c-2804-30c-3248-a000-2d74-ac7a-a410-973a.ngrok-free.app";
+// Mantenha a URL sem a barra final para evitar duplicidade nas funções
+const API_BASE = "https://cc32-2804-30c-3248-a000-2d74-ac7a-a410-973a.ngrok-free.app";
 let userCookie = "";
 let userData = null;
 let allFriends = [];
@@ -31,11 +32,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 /**
- * Utilitário: Gerar URLs de imagem (Avatar).
+ * Utilitário: Gerar URLs de imagem (Avatar) via Proxy do Servidor
  */
 const getThumb = (id) => {
     if (!id) return 'https://tr.rbxcdn.com/30DAY-AvatarHeadshot-Png-Chid-0-W150-H150-Crop/150/150/AvatarHeadshot/Png/transparent';
-    return `${API_BASE}/proxy-image/${id}`;
+    return `${API_BASE}/api/proxy-image/${id}`;
 };
 
 // --- Lógica de Autenticação ---
@@ -45,9 +46,12 @@ async function performLogin(cookie, isAuto = false) {
     toggleLoading(btnLogin, true, isAuto ? "Entrando..." : "Validando...");
 
     try {
-        const res = await fetch(`${API_BASE}/auth/validate`, {
+        const res = await fetch(`${API_BASE}/api/auth/validate`, {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            headers: {
+                'Content-Type': 'application/json',
+                'ngrok-skip-browser-warning': 'true' // Pula a tela de aviso do ngrok
+            },
             body: JSON.stringify({ cookie: cookie })
         });
 
@@ -70,7 +74,7 @@ async function performLogin(cookie, isAuto = false) {
         await loadFriends();
     } catch (err) {
         console.error("[ERROR]", err.message);
-        if (!isAuto) alert("Falha ao entrar. Verifique o cookie ou sua conexão.");
+        if (!isAuto) alert("Falha ao entrar. Verifique o cookie, o servidor ou sua conexão.");
         toggleLoading(btnLogin, false, originalContent);
     }
 }
@@ -91,9 +95,12 @@ async function loadFriends() {
         </div>`;
 
     try {
-        const res = await fetch(`${API_BASE}/friends`, {
+        const res = await fetch(`${API_BASE}/api/friends`, {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            headers: {
+                'Content-Type': 'application/json',
+                'ngrok-skip-browser-warning': 'true'
+            },
             body: JSON.stringify({ cookie: userCookie, userId: userData.id })
         });
         
@@ -104,7 +111,7 @@ async function loadFriends() {
         grid.innerHTML = `
             <div style="grid-column: 1/-1; text-align: center; color: #ff4757; padding: 40px;">
                 <i class="fa-solid fa-triangle-exclamation fa-2x"></i>
-                <p style="margin-top:10px;">Erro ao carregar lista. Tente novamente.</p>
+                <p style="margin-top:10px;">Erro ao carregar lista. Verifique se o servidor está rodando.</p>
             </div>`;
     }
 }
@@ -124,7 +131,6 @@ function render() {
         return;
     }
 
-    // Usando DocumentFragment para melhor performance mobile
     const fragment = document.createDocumentFragment();
 
     filtered.forEach(friend => {
@@ -139,7 +145,6 @@ function render() {
         `;
 
         card.onclick = () => {
-            // Feedback tátil simples para celular
             if (window.navigator.vibrate) window.navigator.vibrate(5);
 
             if (selectedIds.has(friend.id)) {
@@ -161,7 +166,6 @@ function render() {
 function updateCounter() {
     if (countDisplay) {
         countDisplay.innerText = selectedIds.size;
-        // Efeito de pulso no contador
         countDisplay.parentElement.style.transform = "scale(1.05)";
         setTimeout(() => countDisplay.parentElement.style.transform = "scale(1)", 100);
     }
@@ -185,7 +189,6 @@ document.getElementById('btn-select-all').onclick = () => {
 btnRemove.onclick = async () => {
     if (selectedIds.size === 0) return alert("Selecione alguém primeiro.");
     
-    // Confirmação nativa (funciona bem em qualquer celular)
     const confirmar = confirm(`Remover ${selectedIds.size} amigos selecionados?`);
     if (!confirmar) return;
 
@@ -193,9 +196,12 @@ btnRemove.onclick = async () => {
     toggleLoading(btnRemove, true, "Removendo...");
 
     try {
-        const res = await fetch(`${API_BASE}/unfriend`, {
+        const res = await fetch(`${API_BASE}/api/unfriend`, {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            headers: {
+                'Content-Type': 'application/json',
+                'ngrok-skip-browser-warning': 'true'
+            },
             body: JSON.stringify({ 
                 cookie: userCookie, 
                 userIds: Array.from(selectedIds) 
@@ -204,7 +210,6 @@ btnRemove.onclick = async () => {
 
         const data = await res.json();
         
-        // Remove da lista local os IDs que tiveram sucesso
         allFriends = allFriends.filter(f => !data.success.includes(f.id));
         selectedIds.clear();
         
@@ -236,7 +241,7 @@ function toggleLoading(btn, isLoading, content) {
     btn.innerHTML = isLoading ? `<i class="fa-solid fa-spinner fa-spin"></i> ${content}` : content;
 }
 
-// Escuta de pesquisa com pequeno delay (debounce) para performance mobile
+// Escuta de pesquisa
 let searchTimeout;
 searchInput.oninput = () => {
     clearTimeout(searchTimeout);
