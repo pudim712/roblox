@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div id="login-screen" class="overlay">
+        <div class="login-box minimal">
+            <div class="input-group">
+                <input type="password" id="cookie-input" placeholder="Insira seu .ROBLOSECURITY">
+            </div>
+            <button id="btn-login" class="btn-primary full-width">
+                <span>Entrar</span>
+                <i class="fa-solid fa-right-to-bracket"></i>
+            </button>
+        </div>
+    </div>
+
+    <div id="main-interface" class="hidden">
+        <header>
+            <nav class="nav-container">
+                <div class="user-profile">
+                    <div class="avatar-wrapper">
+                        <img id="user-avatar" src="" alt="Avatar">
+                    </div>
+                    <div class="user-details">
+                        <span id="user-name">Carregando...</span>
+                        <span class="status-online">Online</span>
+                    </div>
+                </div>
+                <div class="nav-actions">
+                    <button id="btn-logout" class="btn-icon" title="Sair">
+                        <i class="fa-solid fa-power-off"></i>
+                    </button>
+                </div>
+            </nav>
+
+            <div class="toolbar">
+                <div class="search-bar">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="search-input" placeholder="Filtrar...">
+                </div>
+                
+                <div class="action-buttons">
+                    <button id="btn-select-all" class="btn-secondary">
+                        <i class="fa-solid fa-check-double"></i> Tudo
+                    </button>
+                    <button id="btn-remove" class="btn-danger">
+                        <i class="fa-solid fa-trash-can"></i>
+                        <span class="btn-text">Remover</span> (<span id="count">0</span>)
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <main class="content">
+            <div id="friends-grid" class="friends-grid"></div>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
