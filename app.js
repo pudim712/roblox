@@ -1,10 +1,9 @@
 /**
  * ROBLOX FRIEND MANAGER - Frontend Logic
- * Atualizado: Versão Ultra-Responsiva com Bypass de Ngrok
+ * Atualizado: Versão com Correção de Fotos (Anti-404) e Bypass Ngrok
  */
 
 // Mantenha a URL sem a barra final. 
-// Certifique-se de que este link é o mesmo que aparece no seu terminal do Ngrok!
 const API_BASE = "https://cc32-2804-30c-3248-a000-2d74-ac7a-a410-973a.ngrok-free.app";
 
 let userCookie = "";
@@ -35,13 +34,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 /**
  * Utilitário: Gerar URLs de imagem (Avatar) via Proxy do Servidor
- * O parâmetro 'ngrok-skip-browser-warning' é essencial para as fotos aparecerem no celular.
+ * Corrigido para evitar erros 404 quando o ID é indefinido.
  */
 const getThumb = (id) => {
-    if (!id) return 'https://tr.rbxcdn.com/30DAY-AvatarHeadshot-Png-Chid-0-W150-H150-Crop/150/150/AvatarHeadshot/Png/transparent';
+    // Se não houver ID válido, retorna a imagem transparente padrão do Roblox
+    if (!id || id === "undefined" || id === "null") {
+        return 'https://tr.rbxcdn.com/30DAY-AvatarHeadshot-Png-Chid-0-W150-H150-Crop/150/150/AvatarHeadshot/Png/transparent';
+    }
     
-    // Adicionamos o bypass do Ngrok via query string para que as imagens carreguem direto na tag <img>
-    return `${API_BASE}/api/proxy-image/${id}?ngrok-skip-browser-warning=1`;
+    // Bypass do Ngrok via query string (usando true para maior compatibilidade)
+    return `${API_BASE}/api/proxy-image/${id}?ngrok-skip-browser-warning=true`;
 };
 
 // --- Lógica de Autenticação ---
@@ -55,7 +57,7 @@ async function performLogin(cookie, isAuto = false) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'ngrok-skip-browser-warning': 'true' // Bypass para a requisição fetch
+                'ngrok-skip-browser-warning': 'true' 
             },
             body: JSON.stringify({ cookie: cookie })
         });
@@ -71,7 +73,10 @@ async function performLogin(cookie, isAuto = false) {
 
         // UI Update
         document.getElementById('user-name').innerText = userData.displayName || userData.name;
-        document.getElementById('user-avatar').src = getThumb(userData.id);
+        
+        // Atualiza o avatar do topo com a nova lógica de ID
+        const topAvatar = document.getElementById('user-avatar');
+        if (topAvatar) topAvatar.src = getThumb(userData.id);
 
         loginScreen.classList.add('hidden');
         mainInterface.classList.remove('hidden');
@@ -143,9 +148,12 @@ function render() {
         const card = document.createElement('div');
         card.className = `friend-card ${isSelected ? 'selected' : ''}`;
         
-        // Usamos loading="lazy" para performance, mas o proxy garante a entrega da imagem
+        // Renderização segura da imagem
         card.innerHTML = `
-            <img src="${getThumb(friend.id)}" alt="avatar" onerror="this.src='https://tr.rbxcdn.com/30DAY-AvatarHeadshot-Png-Chid-0-W150-H150-Crop/150/150/AvatarHeadshot/Png/transparent'">
+            <img src="${getThumb(friend.id)}" 
+                 alt="avatar" 
+                 loading="lazy"
+                 onerror="this.onerror=null;this.src='https://tr.rbxcdn.com/30DAY-AvatarHeadshot-Png-Chid-0-W150-H150-Crop/150/150/AvatarHeadshot/Png/transparent';">
             <span class="display-name">${friend.displayName}</span>
             <small class="username">@${friend.name}</small>
         `;
@@ -214,7 +222,7 @@ btnRemove.onclick = async () => {
 
         const data = await res.json();
         
-        // Remove da lista local os que foram removidos com sucesso no Roblox
+        // Atualiza lista local
         allFriends = allFriends.filter(f => !data.success.includes(f.id));
         selectedIds.clear();
         
@@ -246,7 +254,7 @@ function toggleLoading(btn, isLoading, content) {
     btn.innerHTML = isLoading ? `<i class="fa-solid fa-spinner fa-spin"></i> ${content}` : content;
 }
 
-// Escuta de pesquisa com pequeno delay (debounce) para não travar o navegador
+// Debounce para pesquisa
 let searchTimeout;
 searchInput.oninput = () => {
     clearTimeout(searchTimeout);
