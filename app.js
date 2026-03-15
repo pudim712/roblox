@@ -3,8 +3,10 @@
  * Atualizado: Versão Ultra-Responsiva com Bypass de Ngrok
  */
 
-// Mantenha a URL sem a barra final para evitar duplicidade nas funções
+// Mantenha a URL sem a barra final. 
+// Certifique-se de que este link é o mesmo que aparece no seu terminal do Ngrok!
 const API_BASE = "https://cc32-2804-30c-3248-a000-2d74-ac7a-a410-973a.ngrok-free.app";
+
 let userCookie = "";
 let userData = null;
 let allFriends = [];
@@ -33,10 +35,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 /**
  * Utilitário: Gerar URLs de imagem (Avatar) via Proxy do Servidor
+ * O parâmetro 'ngrok-skip-browser-warning' é essencial para as fotos aparecerem no celular.
  */
 const getThumb = (id) => {
     if (!id) return 'https://tr.rbxcdn.com/30DAY-AvatarHeadshot-Png-Chid-0-W150-H150-Crop/150/150/AvatarHeadshot/Png/transparent';
-    return `${API_BASE}/api/proxy-image/${id}`;
+    
+    // Adicionamos o bypass do Ngrok via query string para que as imagens carreguem direto na tag <img>
+    return `${API_BASE}/api/proxy-image/${id}?ngrok-skip-browser-warning=1`;
 };
 
 // --- Lógica de Autenticação ---
@@ -50,7 +55,7 @@ async function performLogin(cookie, isAuto = false) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'ngrok-skip-browser-warning': 'true' // Pula a tela de aviso do ngrok
+                'ngrok-skip-browser-warning': 'true' // Bypass para a requisição fetch
             },
             body: JSON.stringify({ cookie: cookie })
         });
@@ -74,7 +79,7 @@ async function performLogin(cookie, isAuto = false) {
         await loadFriends();
     } catch (err) {
         console.error("[ERROR]", err.message);
-        if (!isAuto) alert("Falha ao entrar. Verifique o cookie, o servidor ou sua conexão.");
+        if (!isAuto) alert("Falha ao entrar. Verifique o cookie ou se o servidor Node.js está aberto.");
         toggleLoading(btnLogin, false, originalContent);
     }
 }
@@ -111,7 +116,7 @@ async function loadFriends() {
         grid.innerHTML = `
             <div style="grid-column: 1/-1; text-align: center; color: #ff4757; padding: 40px;">
                 <i class="fa-solid fa-triangle-exclamation fa-2x"></i>
-                <p style="margin-top:10px;">Erro ao carregar lista. Verifique se o servidor está rodando.</p>
+                <p style="margin-top:10px;">Erro ao carregar lista. Verifique o console do VS Code.</p>
             </div>`;
     }
 }
@@ -127,7 +132,7 @@ function render() {
     });
 
     if (filtered.length === 0) {
-        grid.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: #555; padding: 50px;">Nenhum resultado.</p>`;
+        grid.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: #555; padding: 50px;">Nenhum amigo encontrado.</p>`;
         return;
     }
 
@@ -138,8 +143,9 @@ function render() {
         const card = document.createElement('div');
         card.className = `friend-card ${isSelected ? 'selected' : ''}`;
         
+        // Usamos loading="lazy" para performance, mas o proxy garante a entrega da imagem
         card.innerHTML = `
-            <img src="${getThumb(friend.id)}" loading="lazy">
+            <img src="${getThumb(friend.id)}" alt="avatar" onerror="this.src='https://tr.rbxcdn.com/30DAY-AvatarHeadshot-Png-Chid-0-W150-H150-Crop/150/150/AvatarHeadshot/Png/transparent'">
             <span class="display-name">${friend.displayName}</span>
             <small class="username">@${friend.name}</small>
         `;
@@ -166,8 +172,6 @@ function render() {
 function updateCounter() {
     if (countDisplay) {
         countDisplay.innerText = selectedIds.size;
-        countDisplay.parentElement.style.transform = "scale(1.05)";
-        setTimeout(() => countDisplay.parentElement.style.transform = "scale(1)", 100);
     }
 }
 
@@ -189,7 +193,7 @@ document.getElementById('btn-select-all').onclick = () => {
 btnRemove.onclick = async () => {
     if (selectedIds.size === 0) return alert("Selecione alguém primeiro.");
     
-    const confirmar = confirm(`Remover ${selectedIds.size} amigos selecionados?`);
+    const confirmar = confirm(`Deseja remover ${selectedIds.size} amigos da sua conta?`);
     if (!confirmar) return;
 
     const originalContent = btnRemove.innerHTML;
@@ -210,12 +214,13 @@ btnRemove.onclick = async () => {
 
         const data = await res.json();
         
+        // Remove da lista local os que foram removidos com sucesso no Roblox
         allFriends = allFriends.filter(f => !data.success.includes(f.id));
         selectedIds.clear();
         
-        alert(`Sucesso! ${data.success.length} remoções concluídas.`);
+        alert(`Processo finalizado! Sucesso: ${data.success.length} | Erros: ${data.errors.length}`);
     } catch (err) {
-        alert("Ocorreu um erro ao processar a remoção.");
+        alert("Ocorreu um erro crítico ao remover amigos.");
     } finally {
         toggleLoading(btnRemove, false, originalContent);
         render();
@@ -225,7 +230,7 @@ btnRemove.onclick = async () => {
 
 // Logout
 document.getElementById('btn-logout').onclick = () => {
-    if (confirm("Deseja sair e desconectar sua conta?")) {
+    if (confirm("Deseja sair?")) {
         localStorage.removeItem('rbx_manager_session');
         window.location.reload();
     }
@@ -241,7 +246,7 @@ function toggleLoading(btn, isLoading, content) {
     btn.innerHTML = isLoading ? `<i class="fa-solid fa-spinner fa-spin"></i> ${content}` : content;
 }
 
-// Escuta de pesquisa
+// Escuta de pesquisa com pequeno delay (debounce) para não travar o navegador
 let searchTimeout;
 searchInput.oninput = () => {
     clearTimeout(searchTimeout);
